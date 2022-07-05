@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  username String @unique
+  password String
+
+  @@map(name: "users")
+}
+
+model CatGrupoServico {
+  GrpServico String      @id @db.VarChar(15)
+  Descricao  String      @db.VarChar(255)
+  Dominio    String      @db.VarChar(15)
+  Eventos    CatEvento[]
+  createdAt  DateTime    @default(now())
+  updateAt   DateTime    @updatedAt
+
+  @@map(name: "CatGrupoServicos")
+}
+
+model CatEvento {
+  CodEvento    String           @id @db.VarChar(15)
+  NomeEvento   String?          @db.VarChar(255)
+  Fluxo        String           @db.VarChar(10)
+  GrupoServico CatGrupoServico? @relation(fields: [GrpServicoId], references: [GrpServico])
+  GrpServicoId String?          @db.VarChar(15)
+  Mensagens    CatMensagem[]
+  createdAt    DateTime         @default(now())
+  updateAt     DateTime         @updatedAt
+
+  @@map(name: "CatEventos")
+}
+
+model CatMensagem {
+  CodMsg          String            @id @db.VarChar(15)
+  Tag             String            @db.VarChar(255)
+  Descricao       String            @db.VarChar(255)
+  EntidadeOrigem  String            @db.VarChar(20)
+  EntidadeDestino String            @db.VarChar(20)
+  Eventos         CatEvento?        @relation(fields: [CodEventoId], references: [CodEvento])
+  CodEventoId     String            @db.VarChar(15)
+  MensagemDados   CatMensagemDado[]
+  createdAt       DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+
+  @@map(name: "CatMensagens")
+}
+
+model CatMensagemDado {
+  CodMsg    String       @db.VarChar(15)
+  CodMsgseq Int
+  Tag       String?      @db.VarChar(255)
+  NomeCampo String?      @db.VarChar(255)
+  Mult      String?      @db.VarChar(10)
+  Ou        String?      @db.VarChar(10)
+  Mensagens CatMensagem? @relation(fields: [CodMsg], references: [CodMsg], onDelete: Restrict, onUpdate: Restrict)
+  createdAt DateTime     @default(now())
+  updateAt  DateTime     @updatedAt
+
+  @@id([CodMsg, CodMsgseq])
+  @@map(name: "catMensagemDados")
+}
+
+// model CatCoderrors {
+//   id            String   @id @default(uuid())
+//   cod           String   @unique
+//   Descricao   String?
+//   date_active   String?
+//   date_inactive String?
+//   createdAt     DateTime @default(now())
+
+//   @@map(name: "cat_coderrors")
+// }
+
+// model CatTag {
+//   tag         String   @unique
+//   name_tag    String?
+//   typology    String?
+//   Descricao String?
+//   createdAt   DateTime @default(now())
+
+//   @@map(name: "cat_tag")
+// }
+
+// model CatDominio {
+//   Tipo                      String    @unique
+//   dominio                   String?
+//   descriao                  String?
+//   CpoControle               String?
+//   data_ativacao_homologa    DateTime?
+//   data_ativacao_producao    DateTime?
+//   data_desativacao_homologa DateTime?
+//   data_desativacao_producao DateTime?
+
+//   @@map(name: "cat_dominio")
+// }
+
+// model CatDomnioProducao {
+//   tipo        String  @unique
+//   Dominio     String
+//   Descricao   String?
+//   CpoControle String?
+
+//   @@map(name: "cat_domnio_producao")
+// }
+
+// model CatEvento {
+//   cod_Evento  String  @unique
+//   nome_Evento String?
+//   Descricao   String?
+//   observacao  String?
+//   tipo_fluxo  String?
+
+//   @@map(name: "cat_Evento")
+// }
+
+// model CatGrade {
+//   grade              String  @unique
+//   horario_abertura   DateTime?
+//   horario_fechamento DateTime?
+
+//   @@map(name: "cat_grade")
+// }
+
+// model CatGradeXMsg {
+//   grade     String
+//   mensagens String
+
+//   @@unique([grade, mensagens], name: "CatGradeXMsg_grade_mensagens_unique_constraint")
+//   @@map(name: "cat_grade_x_msg")
+// }
+
+// model CatIspb {
+//   ISPB  String  @unique
+//   descr String?
+
+//   @@map(name: "cat_ispb")
+// }
+
+// model CatTipologia {
+//   tipologia String  @unique
+//   formato   String?
+//   tam       String?
+//   Descricao String?
+
+//   @@map(name: "cat_tipologia")
+// }

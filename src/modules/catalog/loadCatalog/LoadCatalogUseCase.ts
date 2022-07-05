@@ -51,7 +51,7 @@ const regexEvento = /Evento ([A-Z]{3}[0-9]{4})( - )([A-za-z0-9\S ]+)/;
 const regexMensagem = /(?<!Código )(Mensagem: )([A-za-z0-9\S ]+)/g;
 // seleciona Código da mensagem
 const regexCodigoMensagem =
-  /(Código Mensagem: )([A-Z]{3}[0-9]{4}E{0,1}R{0,1}[ 123]{0,1})( +)(Emissor: )([A-Za-z0-9á_çã_\S ]+)( +)(Destinatário: )([A-Za-z0-9á_çã_\S ]+) /;
+  /(Código Mensagem: )([A-Z]{3}[0-9]{4}E{0,1}R{0,1}[ 123]{0,1})( Emissor:)([ A-Za-z0-9á_çãõâ\S]+)([ +]{0,})(Destinatário:)([ A-Za-z0-9á_çãõâ\S]+)/;
 // seleciona Fluxo do Evento
 const regexEventoFluxo =
   /Mensagens Associadas Fluxo do Evento: ([A-za-z0-9\S]+)/g;
@@ -62,7 +62,7 @@ const regexMensagemTag = /<([A-Z]{3}[0-9]{4}E{0,1}R{0,1}[0123]{0,1})>/g;
 // seleciona sequencia Mensagem
 const regexSeqMensagemSel = /([0-9]{1,3})[ ]+([<|<\/]{1,2}[A-Za-z0-9_]+>)[ ]+/;
 const regexSeqMensagemParse =
-  /([0-9]{1,3})[ ]+([<|<\/]{1,2}[A-Za-z0-9_]+>)[ ]+([A-Za-z0-9á_çã_\S ]+)(\[[0-9]{1,3}[.]{1,3}[0-9n]{1,3}\])[ ]*(OU\({0,3}|\){0,1})/;
+  /([0-9]{1,3})[ ]+([<|<\/]{1,2}[A-Za-z0-9_]+>)[ ]+([A-Za-z0-9á_çãõâ_\S ]+)(\[[0-9]{1,3}[.]{1,3}[0-9n]{1,3}\])[ ]*(OU\({0,3}|\){0,1})/;
 
 const regexOU = /^[ ]*(OU\(|^\))/;
 
@@ -73,6 +73,7 @@ var cadEventos = [] as ICadEvento[];
 var cadMensagens = [] as ICadMensagem[];
 var cadMensagemDados = [] as ICadMensagemDado[];
 var cadUpdateMensagemDados = [] as ICadMensagemDado[];
+var cadUpdateMensagemDadosUpdate = [] as any[];
 var cadServico = {} as ICadServico;
 var cadEvento = {} as ICadEvento;
 var cadMensagem = {} as ICadMensagem;
@@ -138,16 +139,19 @@ async function ProcessCatalog(line: string, index: number) {
   // get Cod Mensagem
   if (line.match(regexCodigoMensagem)) {
     var parseText = <string[]>regexCodigoMensagem.exec(line);
-    var [, , CodMsg, , , EntidadeOrigem, , , EntidadeDestino] = parseText;
-    // if (CodMsg.startsWith('SLB', 0)) {
+    var [, , CodMsg, , EntidadeOrigem, , , EntidadeDestino] = parseText;
+    // if (CodMsg.startsWith('DDA0001', 0)) {
+    //   console.log(`parseText: ${parseText}`);
     //   console.log(`CodMsg: ${CodMsg}`);
+    //   console.log(`EntidadeOrigem: ${EntidadeOrigem}`);
+    //   console.log(`EntidadeDestino: ${EntidadeDestino}`);
     // }
     cadMensagem = {
       ...cadMensagem,
       CodMsg,
       Tag: `<${CodMsg.trim()}>`,
-      EntidadeOrigem,
-      EntidadeDestino,
+      EntidadeOrigem: EntidadeOrigem.trim(),
+      EntidadeDestino: EntidadeDestino.trim(),
     };
     cadMensagens = [...cadMensagens, cadMensagem];
     return;
@@ -221,13 +225,23 @@ export class LoadCatalogUseCase {
       skipDuplicates: true,
     });
 
+    function filtroMsg(item: ICadMensagem) {
+      return item.CodMsg?.substring(0, 3) === 'DDA';
+    }
+
+    // const newArrayMsg = cadMensagens.filter(filtroMsg);
+    // console.log(newArrayMsg);
+
+    // const resultMensagem = await prisma.catMensagem.createMany({
+    //   data: newArrayMsg as [],
+    //   skipDuplicates: true,
+    // });
     const resultMensagem = await prisma.catMensagem.createMany({
       data: cadMensagens as [],
       skipDuplicates: true,
     });
-
     // function filtro(item: ICadMensagemDado) {
-    //   return item.CodMsg.substring(0, 3) === 'LFL';
+    //   return item.CodMsg.substring(0, 6) === 'DDA001';
     // }
 
     // const newArray = cadMensagemDados.filter(filtro);
@@ -243,7 +257,7 @@ export class LoadCatalogUseCase {
       skipDuplicates: true,
     });
 
-    cadUpdateMensagemDados.map(async (regUpdate: ICadMensagemDado) => {
+    cadUpdateMensagemDados.forEach(async (regUpdate: ICadMensagemDado) => {
       const resultMensagemDadosUpdate = await prisma.catMensagemDado.update({
         where: {
           CodMsg_CodMsgseq: {
@@ -255,6 +269,10 @@ export class LoadCatalogUseCase {
           Ou: regUpdate.Ou,
         },
       });
+      cadUpdateMensagemDadosUpdate = {
+        ...cadUpdateMensagemDadosUpdate,
+      };
+      console.log(`MensagemDadosUpdate: ${resultMensagemDadosUpdate}`);
     });
     return {
       Info: data.info.Title,
@@ -264,6 +282,9 @@ export class LoadCatalogUseCase {
       eventos: resultEvento.count,
       mensagens: resultMensagem.count,
       mensagensDados: resultMensagemDados.count,
+      mensagensDadosUpdate: JSON.stringify(cadUpdateMensagemDadosUpdate),
+
+      // teste: newArrayMsg,
     };
   }
 }
